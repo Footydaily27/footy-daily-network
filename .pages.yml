@@ -1,0 +1,98 @@
+# Footy Daily Network editor — Pages CMS (https://pagescms.org)
+media:
+  input: assets/img
+  output: /assets/img
+
+content:
+  - name: stories
+    label: Stories
+    type: collection
+    path: content/stories
+    format: yaml-frontmatter
+    filename: "{fields.title}.md"
+    view:
+      fields: [title, date, league]
+      primary: title
+      sort: [date, title]
+      default:
+        sort: date
+        order: desc
+    fields:
+      - name: title
+        label: Title
+        type: string
+        required: true
+      - name: date
+        label: Date
+        type: date
+        required: true
+      - name: league
+        label: League
+        type: select
+        options:
+          values: [MLS, MLS NEXT Pro, NWSL, USL, U.S. Open Cup, Concacaf, UPSL, College, High School, Youth, Features]
+      - name: author
+        label: Author
+        type: string
+        default: Andrew Khai
+      - name: cover
+        label: Cover photo
+        description: The big photo at the top of the story and on the homepage.
+        type: image
+        options:
+          path: assets/img/uploads
+      - name: body
+        label: Story
+        type: rich-text
+      - name: gallery
+        label: Match gallery
+        description: Add as many photos as you like.
+        type: image
+        options:
+          multiple: true
+          path: assets/img/uploads
+      - name: excerpt
+        label: Short summary (optional)
+        description: Shown on story cards. Leave blank to use the first lines of the story.
+        type: text
+      - name: draft
+        label: Hide from site
+        type: boolean
+        default: false
+      - name: tags
+        type: string
+        list: true
+        hidden: true
+      - name: old_url
+        type: string
+        hidden: true
+
+  - name: founders
+    label: Founders
+    type: file
+    path: content/founders.yml
+    format: yaml
+    fields:
+      - name: founders
+        label: Founders
+        type: object
+        list: true
+        fields:
+          - { name: name, label: Name, type: string }
+          - { name: role, label: Role, type: string }
+          - { name: handle, label: Instagram handle (no @), type: string }
+          - { name: photo, label: Photo, type: image, options: { path: assets/img/uploads } }
+          - { name: bio, label: Bio, type: text }
+
+  - name: photos
+    label: Photos page
+    type: file
+    path: content/photos.yml
+    format: yaml
+    fields:
+      - name: photos
+        label: Photos
+        type: image
+        options:
+          multiple: true
+          path: assets/img/uploads

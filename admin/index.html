@@ -1,38 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex">
-  <title>Editor | Footy Daily Network</title>
-  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Editor | Footy Daily Network</title>
+<meta http-equiv="refresh" content="0; url=https://app.pagescms.org/">
+<style>body{font:16px/1.5 system-ui,sans-serif;background:#0b0b0c;color:#fff;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#e3171f}</style>
 </head>
-<body>
-  <script src="https://unpkg.com/decap-cms@3.16.3/dist/decap-cms.js"></script>
-  <script>
-    CMS.registerPreviewStyle('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800&display=swap');
-    CMS.registerPreviewStyle('/assets/css/style.css');
-    // Live preview that looks like the real story page
-    const h = window.h || CMS.h;
-    CMS.registerPreviewTemplate('stories', createClass({
-      render() {
-        const e = this.props.entry, get = k => e.getIn(['data', k]);
-        const cover = get('cover') ? this.props.getAsset(get('cover')) : null;
-        const gallery = (get('gallery') || []).toJS ? get('gallery').toJS() : [];
-        return h('div', {},
-          h('section', { className: 'article-hero', style: { minHeight: '420px' } },
-            cover ? h('img', { src: cover.toString() }) : null,
-            h('div', { className: 'wrap' },
-              h('span', { className: 'pill' }, get('league') || 'League'),
-              h('h1', {}, get('title') || 'Story title'),
-              h('div', { className: 'meta' }, h('span', {}, get('author') || ''), h('span', {}, get('date') || '')))),
-          h('article', { className: 'article' }, this.props.widgetFor('body')),
-          gallery.length ? h('section', { className: 'photo-gallery' }, h('div', { className: 'wrap' },
-            h('div', { className: 'section-head' }, h('h2', {}, 'Match Gallery')),
-            h('div', { className: 'masonry' }, gallery.map((g, i) =>
-              h('a', { key: i }, h('img', { src: this.props.getAsset(g).toString() })))))) : null);
-      }
-    }));
-  </script>
-</body>
+<body><p>Opening the Footy Daily Network editor…<br><a href="https://app.pagescms.org/">Click here if it doesn't open</a></p></body>
 </html>
