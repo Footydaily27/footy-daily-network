@@ -46,8 +46,8 @@ def load_stories():
         d = fm.get('date')
         d = d.isoformat()[:10] if hasattr(d, 'isoformat') else str(d)[:10]
         out.append({
-            'slug': os.path.splitext(os.path.basename(f))[0], 'title': str(fm.get('title', 'Untitled')),
-            'date': d, 'league': fm.get('league') or 'MLS', 'author': fm.get('author') or NAME,
+            'slug': os.path.splitext(os.path.basename(f))[0], 'title': str(fm.get('title', 'Untitled')).strip(),
+            'date': d, 'league': fm.get('league') or 'MLS', 'author': str(fm.get('author') or NAME).strip(),
             'tags': as_list(fm.get('tags')), 'cover': cover, 'excerpt': excerpt, 'words': len(text.split()),
             'body': body_html, 'gallery': gallery, 'n_inline': len(inline), 'old_link': fm.get('old_url') or '',
         })
