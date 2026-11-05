@@ -15,8 +15,6 @@ gallery:
   - /assets/img/uploads/DSC05992.jpeg
 draft: false
 ---
-
-
 Chattanooga FC have made history.
 
 The Boys in Blue secured their place in the MLS NEXT Pro Cup Final after delivering a dramatic 3-2 comeback victory over Columbus Crew 2 in the Eastern Conference Final.
