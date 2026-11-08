@@ -3,7 +3,7 @@ title: Chattanooga FC Hosts LAFC 2 With First MLS NEXT Pro Title on the Line
 date: 2026-11-08
 league: MLS NEXT Pro
 author: David Levinsohn
-cover: /assets/img/uploads/Untitled design.jpeg
+cover: /assets/img/uploads/Untitled design-1.jpeg
 gallery:
   - /assets/img/uploads/DSC07068.jpeg
   - /assets/img/uploads/DSC06108.jpeg
