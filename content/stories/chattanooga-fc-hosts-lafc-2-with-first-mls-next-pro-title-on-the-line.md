@@ -14,8 +14,6 @@ gallery:
   - /assets/img/uploads/IMG_1498.jpeg
 draft: false
 ---
-
-
 Chattanooga FC nearly saw its season end last weekend. Now, the club is preparing to host the biggest match of its MLS NEXT Pro run.
 
 Chattanooga faces LAFC 2 at Finley Stadium on Sunday, November 8, at 6 p.m. ET. Both teams are making their first appearance in the final, with Chattanooga becoming the first independent club to reach this stage. (++[mlsnextpro.com](http://mlsnextpro.com)++⁠)
