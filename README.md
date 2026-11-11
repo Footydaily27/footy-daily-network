@@ -8,7 +8,7 @@
 - `content/founders.yml` – Founders section
 - `assets/img/` – all photos (new uploads go into `assets/img/uploads/`)
 - `.pages.yml` – editor settings (Pages CMS); `admin/` just forwards to it
-- `build.py` – turns the content into the website (GitHub runs it on every change via .github/workflows/deploy.yml, then uploads to Netlify)
+- `build.py` – turns the content into the website (GitHub runs it on every change via .github/workflows/deploy.yml, then publishes it free on GitHub Pages)
 
 ## Build on your own computer
 ```

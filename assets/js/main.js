@@ -10,34 +10,22 @@
     });
   }
 
-  // Story filters + search
-  const list = document.querySelector('[data-story-list]');
-  if (list) {
-    const cards = [...list.querySelectorAll('[data-league]')];
-    const chips = [...document.querySelectorAll('[data-filter]')];
-    const search = document.querySelector('[data-search]');
-    const empty = document.querySelector('[data-empty]');
-    const limit = parseInt(list.dataset.limit || '0', 10);
-    let league = 'all';
-    const params = new URLSearchParams(location.search);
-    if (params.get('league')) league = params.get('league');
+  // Old ?league= links -> the league's own page
+  const lg = new URLSearchParams(location.search).get('league');
+  if (lg) location.replace('/leagues/' + lg.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '/');
 
-    const apply = () => {
-      const q = (search?.value || '').trim().toLowerCase();
+  // Story search
+  const list = document.querySelector('[data-story-list]');
+  const search = document.querySelector('[data-search]');
+  if (list && search) {
+    const cards = [...list.querySelectorAll('[data-text]')];
+    const empty = document.querySelector('[data-empty]');
+    search.addEventListener('input', () => {
+      const q = search.value.trim().toLowerCase();
       let shown = 0;
-      cards.forEach(c => {
-        const ok = (league === 'all' || c.dataset.league === league) &&
-          (!q || c.dataset.text.includes(q));
-        const show = ok && (!limit || shown < limit);
-        c.hidden = !show;
-        if (show) shown++;
-      });
-      chips.forEach(ch => ch.setAttribute('aria-pressed', ch.dataset.filter === league));
+      cards.forEach(c => { c.hidden = !!q && !c.dataset.text.includes(q); if (!c.hidden) shown++; });
       if (empty) empty.hidden = shown > 0;
-    };
-    chips.forEach(ch => ch.addEventListener('click', () => { league = ch.dataset.filter; apply(); }));
-    search?.addEventListener('input', apply);
-    apply();
+    });
   }
 
   // Lightbox for any [data-lightbox] group

@@ -14,11 +14,13 @@ from PIL import Image, ImageOps
 from collections import Counter, OrderedDict
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+OUT = os.path.join(ROOT, '_site')   # finished website (published by GitHub Pages)
 SITE_URL = 'https://footydailynetwork.com'
 NAME = 'Footy Daily Network'
 TAGLINE = 'Captured Moments: The Game Beyond the Scoreline'
 EMAIL = 'footydailynetwork@gmail.com'
 PHONES = ['678-793-4952', '404-308-6239']
+FORM_TO = 'dlevinsohn4@gmail.com'   # contact-form messages are emailed here (via formsubmit.co)
 
 LOGO = '2025/08/footydaily-network-1.jpg'
 
@@ -104,10 +106,16 @@ LEAGUE_ORDER = ['MLS', 'MLS NEXT Pro', 'NWSL', 'USL', 'U.S. Open Cup', 'Concacaf
 counts = Counter(s['league'] for s in stories)
 leagues = [l for l in LEAGUE_ORDER if counts[l]] + [l for l in counts if l not in LEAGUE_ORDER]
 lslug = lambda l: re.sub(r'[^a-z0-9]+', '-', l.lower()).strip('-')
+lurl = lambda l: f'/leagues/{lslug(l)}/'
+by_league = {l: [s for s in stories if s['league'] == l] for l in leagues}
+LEAGUE_NAMES = {'MLS': 'Major League Soccer', 'MLS NEXT Pro': 'MLS NEXT Pro', 'NWSL': "National Women's Soccer League",
+                'USL': 'United Soccer League', 'U.S. Open Cup': 'Lamar Hunt U.S. Open Cup', 'Concacaf': 'Concacaf',
+                'UPSL': 'United Premier Soccer League', 'College': 'College Soccer', 'High School': 'High School Soccer',
+                'Youth': 'Youth & Academy Soccer', 'Features': 'Features & Interviews'}
 
 BALL = '''<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14.5" fill="#fff" stroke="#0b0b0c" stroke-width="2"/><path fill="#0b0b0c" d="M16 9.2l5 3.6-1.9 5.9h-6.2L11 12.8zM16 2.5v6.7M21 12.8l6.6-2.2M19.1 18.7l4 5.4M12.9 18.7l-4 5.4M11 12.8L4.4 10.6" stroke="#0b0b0c" stroke-width="1.6"/></svg>'''
 BRAND = f'<a class="brand" href="/" aria-label="{NAME} home"><span class="brand-name">Footy<b>Daily</b><small>Network</small></span></a>'
-NAV = [('/', 'Home'), ('/stories/', 'Stories'), ('/photos/', 'Photos'), ('/team/', 'Founders'), ('/about/', 'About')]
+NAV = [('/', 'Home'), ('/stories/', 'Stories'), ('/leagues/', 'Leagues'), ('/photos/', 'Photos'), ('/team/', 'Founders'), ('/about/', 'About')]
 
 def head(title, desc, path, image=None):
     full = f'{title} | {NAME}' if title != NAME else f'{NAME} — {TAGLINE}'
@@ -135,9 +143,11 @@ def head(title, desc, path, image=None):
 </head>
 <body>'''
 
-def header(active):
+def header(active, league=None):
     links = ''.join(f'<a href="{h}"{" aria-current=page" if h == active else ""}>{t}</a>' for h, t in NAV)
     tick = ''.join(f'<a href="/stories/{s["slug"]}/">{esc(s["title"])}</a>' for s in stories[:10])
+    lbar = ''.join(f'<a href="{lurl(l)}"{" aria-current=page" if l == league else ""}>{esc(l)}</a>' for l in leagues)
+    ticker = f'<div class="ticker" aria-label="Latest stories"><div class="ticker-inner"><span class="ticker-label">Latest</span><div class="ticker-track">{tick}{tick}</div></div></div>' if active == '/' else ''
     return f'''
 <header class="site-header">
   <div class="wrap">
@@ -146,11 +156,12 @@ def header(active):
     <button class="menu-btn" aria-label="Open menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
   </div>
 </header>
-<div class="ticker" aria-label="Latest stories"><div class="ticker-inner"><span class="ticker-label">Latest</span><div class="ticker-track">{tick}{tick}</div></div></div>
+<nav class="league-bar" aria-label="Leagues"><div class="wrap"><span class="lb-label">Leagues</span>{lbar}</div></nav>
+{ticker}
 <main>'''
 
 def footer():
-    lg = ''.join(f'<li><a href="/stories/?league={esc(l)}">{esc(l)}</a></li>' for l in leagues[:7])
+    lg = ''.join(f'<li><a href="{lurl(l)}">{esc(l)}</a></li>' for l in leagues[:7]) + '<li><a href="/leagues/">All leagues →</a></li>'
     return f'''
 </main>
 <footer class="site-footer">
@@ -167,7 +178,7 @@ def footer():
         <li><a href="/contact/">Contact us →</a></li>
       </ul></div>
     </div>
-    <div class="foot-bottom"><span>© {datetime.date.today().year} {NAME}. All photos © their photographers.</span><span><a href="/stories/">Stories</a> · <a href="/photos/">Photos</a> · <a href="/team/">Founders</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span></div>
+    <div class="foot-bottom"><span>© {datetime.date.today().year} {NAME}. All photos © their photographers.</span><span><a href="/stories/">Stories</a> · <a href="/leagues/">Leagues</a> · <a href="/photos/">Photos</a> · <a href="/team/">Founders</a> · <a href="/about/">About</a> · <a href="/contact/">Contact</a></span></div>
   </div>
 </footer>
 <script src="/assets/js/main.js?v={VER('assets/js/main.js')}" defer></script>
@@ -176,25 +187,40 @@ def footer():
 
 CAM = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h3l2-3h6l2 3h3v13H4z"/><circle cx="12" cy="13" r="4"/></svg>'
 
-def card(s, eager=False):
+def card(s, eager=False, cls=''):
     text = esc(f"{s['title']} {s['league']} {s['excerpt']} {' '.join(s['tags'])}".lower())
-    return f'''<a class="card" href="/stories/{s['slug']}/" data-league="{esc(s['league'])}" data-text="{text}">
-  <div class="card-img"><img src="{thumb(s['cover'])}" alt="" loading="{'eager' if eager else 'lazy'}"><span class="pill">{esc(s['league'])}</span><span class="count">{CAM}{photos_in(s)}</span></div>
-  <div class="meta"><span>{fdate(s['date'])}</span><span>{read_time(s)} min read</span></div>
-  <h3>{esc(s['title'])}</h3>
-  <p>{esc(s['excerpt'])}</p>
-</a>'''
+    img_src = img(s['cover']) if 'feature' in cls else thumb(s['cover'])
+    return f'''<article class="card {cls}" data-league="{esc(s['league'])}" data-text="{text}">
+  <div class="card-img"><img src="{img_src}" alt="" loading="{'eager' if eager else 'lazy'}"><span class="count">{CAM}{photos_in(s)}</span></div>
+  <div class="card-body">
+    <a class="kicker" href="{lurl(s['league'])}">{esc(s['league'])}</a>
+    <h3><a class="stretch" href="/stories/{s['slug']}/">{esc(s['title'])}</a></h3>
+    <p>{esc(s['excerpt'])}</p>
+    <div class="meta"><span>{fdate(s['date'])}</span><span>{read_time(s)} min read</span></div>
+  </div>
+</article>'''
 
-def filters(with_search=True):
-    chips = f'<button class="chip" data-filter="all" aria-pressed="true">All<span class="n">{len(stories)}</span></button>'
-    chips += ''.join(f'<button class="chip" data-filter="{esc(l)}">{esc(l)}<span class="n">{counts[l]}</span></button>' for l in leagues)
+def filters(active='all', with_search=False):
+    """League buttons: each one opens that league's page."""
+    chips = f'<a class="chip" href="/stories/"{" aria-current=page" if active == "all" else ""}>All<span class="n">{len(stories)}</span></a>'
+    chips += ''.join(f'<a class="chip" href="{lurl(l)}"{" aria-current=page" if l == active else ""}>{esc(l)}<span class="n">{counts[l]}</span></a>' for l in leagues)
     srch = '<input class="search" type="search" placeholder="Search teams, players…" aria-label="Search stories" data-search>' if with_search else ''
     return f'<div class="filters">{chips}{srch}</div>'
 
+def league_tile(l, eager=False):
+    ss = by_league[l]
+    return f'''<a class="league-tile" href="{lurl(l)}">
+  <img src="{thumb(ss[0]['cover'])}" alt="" loading="{'eager' if eager else 'lazy'}">
+  <div><span class="lt-n">{len(ss)} {'story' if len(ss) == 1 else 'stories'}</span><h3>{esc(l)}</h3><span class="lt-latest">Latest: {esc(ss[0]['title'])}</span></div>
+</a>'''
+
 def write(path, content):
-    out = os.path.join(ROOT, path.strip('/'), 'index.html') if path != '/' else os.path.join(ROOT, 'index.html')
+    out = os.path.join(OUT, path.strip('/'), 'index.html') if path != '/' else os.path.join(OUT, 'index.html')
     os.makedirs(os.path.dirname(out), exist_ok=True)
     open(out, 'w').write(content)
+
+shutil.rmtree(OUT, ignore_errors=True)
+os.makedirs(OUT)
 
 # ---------------- Home ----------------
 lead, side = stories[0], stories[1:3]
@@ -212,6 +238,12 @@ def founder_card(f):
 </article>'''
 founders_html = ''.join(founder_card(f) for f in FOUNDERS)
 total_photos = sum(photos_in(s) for s in stories)
+league_rows = ''.join(f'''<section class="section league-row">
+  <div class="wrap">
+    <div class="section-head"><div><span class="eyebrow">{esc(LEAGUE_NAMES.get(l, l))}</span><h2>{esc(l)}</h2></div><a class="link-arrow" href="{lurl(l)}">All {len(by_league[l])} {esc(l)} stories</a></div>
+    <div class="grid">{''.join(card(x) for x in by_league[l][:3])}</div>
+  </div>
+</section>''' for l in sorted([l for l in leagues if len(by_league[l]) >= 3], key=lambda l: by_league[l][0]['date'], reverse=True)[:4])
 home = head(NAME, f'{TAGLINE}. Match reports and photography from MLS, NWSL, USL, MLS NEXT Pro, UPSL, college and youth soccer.', '/') + header('/') + f'''
 <section class="hero">
   <div class="wrap hero-grid">
@@ -230,14 +262,21 @@ home = head(NAME, f'{TAGLINE}. Match reports and photography from MLS, NWSL, USL
 
 <section class="section">
   <div class="wrap">
-    <div class="section-head"><div><h2>From the Pitch</h2><p>Match reports, player features and stories from youth to professional soccer.</p></div><a class="link-arrow" href="/stories/">All {len(stories)} stories</a></div>
-    {filters(with_search=False)}
-    <div class="grid" data-story-list data-limit="9">{''.join(card(s) for s in stories[3:])}</div>
-    <p class="empty" data-empty hidden>No stories in this category yet.</p>
+    <div class="section-head"><div><h2>From the Pitch</h2><p>Match reports, player features and stories from youth to professional soccer. Pick a league to see all of its stories.</p></div><a class="link-arrow" href="/stories/">All {len(stories)} stories</a></div>
+    {filters()}
+    <div class="grid">{''.join(card(s) for s in stories[3:9])}</div>
   </div>
 </section>
 
 <section class="section dark">
+  <div class="wrap">
+    <div class="section-head"><div><h2>Browse by League</h2><p>Every story, sorted by the league it was played in.</p></div><a class="link-arrow" href="/leagues/">All leagues</a></div>
+    <div class="league-tiles">{''.join(league_tile(l) for l in leagues)}</div>
+  </div>
+</section>
+{league_rows}
+
+<section class="section alt">
   <div class="wrap">
     <div class="section-head"><div><h2>Through Our Lens</h2><p>Our latest matchday photography — the intensity, the passion and the moments that define the game.</p></div><a class="link-arrow" href="/photos/">See all photos</a></div>
     <div class="strip">{strip}</div>
@@ -263,11 +302,41 @@ write('/', home)
 idx = head('Stories', 'Every match report and feature from Footy Daily Network.', '/stories/') + header('/stories/') + f'''
 <section class="page-head"><div class="wrap"><div class="eyebrow">From the Pitch</div><h1>Stories</h1><p>{len(stories)} match reports and features, {total_photos:,} photos — from MLS and NWSL to UPSL, college, high school and academy soccer.</p></div></section>
 <section class="section"><div class="wrap">
-  {filters()}
+  {filters(with_search=True)}
   <div class="grid" data-story-list>{''.join(card(s, i < 6) for i, s in enumerate(stories))}</div>
   <p class="empty" data-empty hidden>No stories match that search.</p>
 </div></section>''' + footer()
 write('/stories/', idx)
+
+# ---------------- Leagues ----------------
+write('/leagues/', head('Leagues', 'Browse Footy Daily Network stories by league: MLS, MLS NEXT Pro, NWSL, USL, UPSL, college, high school and youth soccer.', '/leagues/') + header('/leagues/') + f'''
+<section class="page-head"><div class="wrap"><div class="eyebrow">Browse by League</div><h1>Leagues</h1><p>{len(leagues)} leagues and competitions, from the pros to the grassroots. Pick one to see every story from it.</p></div></section>
+<section class="section"><div class="wrap"><div class="league-tiles big">{''.join(league_tile(l, i < 6) for i, l in enumerate(leagues))}</div></div></section>''' + footer())
+
+for l in leagues:
+    ss = by_league[l]
+    lead_s, rest = ss[0], ss[1:]
+    n_ph = sum(photos_in(x) for x in ss)
+    others = ''.join(league_tile(o) for o in leagues if o != l)
+    more = (f'<div class="section-head" style="margin-top:56px"><div><h2>More {esc(l)}</h2></div></div><div class="grid">' + ''.join(card(x) for x in rest) + '</div>') if rest else ''
+    write(lurl(l), head(f'{l} Stories', f'Every {l} match report, feature and photo gallery from Footy Daily Network: {len(ss)} stories and {n_ph} photos.', lurl(l), img(lead_s['cover'])) + header('/leagues/', l) + f'''
+<section class="league-head">
+  <img src="{img(lead_s['cover'])}" alt="">
+  <div class="wrap">
+    <div class="crumbs"><a href="/leagues/">Leagues</a> / {esc(l)}</div>
+    <h1>{esc(l)}</h1>
+    <p>{esc(LEAGUE_NAMES.get(l, l))} · {len(ss)} {'story' if len(ss) == 1 else 'stories'} · {n_ph:,} photos</p>
+  </div>
+</section>
+<section class="section"><div class="wrap">
+  {filters(l)}
+  {card(lead_s, True, 'feature')}
+  {more}
+</div></section>
+<section class="section dark"><div class="wrap">
+  <div class="section-head"><div><h2>Other Leagues</h2></div><a class="link-arrow" href="/leagues/">All leagues</a></div>
+  <div class="league-tiles">{others}</div>
+</div></section>''' + footer())
 
 # ---------------- Story pages ----------------
 def render_body(s):
@@ -301,7 +370,7 @@ for i, s in enumerate(stories):
 <section class="article-hero">
   <img src="{img(s['cover'])}" alt="" fetchpriority="high">
   <div class="wrap">
-    <div class="crumbs"><a href="/stories/">Stories</a> / <a href="/stories/?league={esc(s['league'])}">{esc(s['league'])}</a></div>
+    <div class="crumbs"><a href="/stories/">Stories</a> / <a href="{lurl(s['league'])}">{esc(s['league'])}</a></div>
     <h1>{esc(s['title'])}</h1>
     <div class="meta"><span>{fdate(s['date'])}</span><span>{read_time(s)} min read</span><span>{photos_in(s)} photos</span></div>
   </div>
@@ -318,7 +387,7 @@ for i, s in enumerate(stories):
 </article>
 {gal_html}
 <section class="section"><div class="wrap">
-  <div class="section-head"><div><h2>More Stories</h2></div><a class="link-arrow" href="/stories/">All stories</a></div>
+  <div class="section-head"><div><h2>More {esc(s['league'])}</h2></div><a class="link-arrow" href="{lurl(s['league'])}">All {esc(s['league'])} stories</a></div>
   <div class="grid">{''.join(card(r) for r in related)}</div>
 </div></section>''' + footer()
     write(path, page)
@@ -359,9 +428,12 @@ phones = ''.join(f'<a href="tel:{p.replace("-", "")}">{p}</a>' for p in PHONES)
 write('/contact/', head('Contact', 'Book coverage, collaborate, or get in touch with Footy Daily Network.', '/contact/') + header('/contact/') + f'''
 <section class="page-head"><div class="wrap"><div class="eyebrow">Contact Us</div><h1>Let's Talk</h1><p>Have questions, want to book coverage, or collaborate? We'd love to hear from you. We aim to respond within 1–2 business days.</p></div></section>
 <section class="section"><div class="wrap two-col">
-  <form class="contact" name="contact" method="POST" action="/contact/thanks/" data-netlify="true" netlify-honeypot="company">
-    <input type="hidden" name="form-name" value="contact">
-    <p hidden><label>Leave blank <input name="company"></label></p>
+  <form class="contact" name="contact" method="POST" action="https://formsubmit.co/{FORM_TO}">
+    <input type="hidden" name="_subject" value="New message from footydailynetwork.com">
+    <input type="hidden" name="_next" value="{SITE_URL}/contact/thanks/">
+    <input type="hidden" name="_template" value="table">
+    <input type="hidden" name="_captcha" value="false">
+    <p hidden><label>Leave blank <input name="_honey" tabindex="-1" autocomplete="off"></label></p>
     <div class="row2">
       <label>Name<input name="name" required autocomplete="name"></label>
       <label>Email<input name="email" type="email" required autocomplete="email"></label>
@@ -384,25 +456,41 @@ write('/contact/thanks/', head('Thanks', 'Message sent.', '/contact/thanks/') + 
 <section class="page-head"><div class="wrap"><div class="eyebrow">Message sent</div><h1>Thank you!</h1><p>We got your message and will get back to you within 1–2 business days.</p><p style="margin-top:24px"><a class="btn red" href="/stories/">Read the latest stories →</a></p></div></section>''' + footer())
 
 # 404
-open(os.path.join(ROOT, '404.html'), 'w').write(head('Page not found', 'Page not found', '/404') + header('') + '''
+open(os.path.join(OUT, '404.html'), 'w').write(head('Page not found', 'Page not found', '/404') + header('') + '''
 <section class="page-head"><div class="wrap"><div class="eyebrow">404</div><h1>Offside!</h1><p>That page doesn't exist. Try the latest stories instead.</p><p style="margin-top:24px"><a class="btn red" href="/stories/">See stories →</a></p></div></section>''' + footer())
 
-# ---------------- Favicon, redirects, sitemap ----------------
-open(os.path.join(ROOT, 'assets', 'favicon.svg'), 'w').write(BALL.replace('aria-hidden="true"', 'xmlns="http://www.w3.org/2000/svg"'))
+# ---------------- Assets, redirects, sitemap ----------------
+def link_tree(src, dst):
+    """Copy a folder into the finished site (hard links when possible, so it's instant)."""
+    for d, _, files in os.walk(src):
+        rel = os.path.relpath(d, src)
+        os.makedirs(os.path.join(dst, rel), exist_ok=True)
+        for f in files:
+            if f == '.DS_Store': continue
+            a, b = os.path.join(d, f), os.path.join(dst, rel, f)
+            try: os.link(a, b)
+            except OSError: shutil.copy2(a, b)
+link_tree(os.path.join(ROOT, 'assets'), os.path.join(OUT, 'assets'))
+link_tree(os.path.join(ROOT, 'admin'), os.path.join(OUT, 'admin'))
+open(os.path.join(OUT, 'assets', 'favicon.svg'), 'w').write(BALL.replace('aria-hidden="true"', 'xmlns="http://www.w3.org/2000/svg"'))
 
-redir = ['# Old WordPress URLs -> new pages (Netlify / Cloudflare Pages format)',
-         '/from-the-pitch-2/* /stories/ 301', '/about-us/* /about/ 301',
-         '/photography/* /team/ 301', '/contact-us/* /contact/ 301']
+# Old WordPress URLs -> small pages that forward to the new address
+def redirect(old, new):
+    old = re.sub(r'^https?://[^/]+', '', old).split('?')[0]
+    if not old.strip('/') or old.rstrip('/') + '/' == new: return
+    write(old.rstrip('/') + '/', f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Moved</title>
+<link rel="canonical" href="{SITE_URL}{new}"><meta name="robots" content="noindex"><meta http-equiv="refresh" content="0; url={new}">
+<script>location.replace({json.dumps(new)} + location.hash)</script></head><body><a href="{new}">This page has moved. Click here.</a></body></html>''')
+for old, new in [('/from-the-pitch-2/', '/stories/'), ('/about-us/', '/about/'), ('/photography/', '/team/'), ('/contact-us/', '/contact/')]:
+    redirect(old, new)
 for s in stories:
-    old = re.sub(r'^https?://[^/]+', '', s['old_link'])
-    if old and old != f'/stories/{s["slug"]}/':
-        redir.append(f'{old} /stories/{s["slug"]}/ 301')
-        redir.append(f'{old.rstrip("/")} /stories/{s["slug"]}/ 301')
-open(os.path.join(ROOT, '_redirects'), 'w').write('\n'.join(redir) + '\n')
+    if s['old_link']: redirect(s['old_link'], f'/stories/{s["slug"]}/')
 
-urls = ['/', '/stories/', '/photos/', '/team/', '/about/', '/contact/'] + [f'/stories/{s["slug"]}/' for s in stories]
-open(os.path.join(ROOT, 'sitemap.xml'), 'w').write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+urls = ['/', '/stories/', '/leagues/', '/photos/', '/team/', '/about/', '/contact/'] + [lurl(l) for l in leagues] + [f'/stories/{s["slug"]}/' for s in stories]
+open(os.path.join(OUT, 'sitemap.xml'), 'w').write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
     ''.join(f'  <url><loc>{SITE_URL}{u}</loc></url>\n' for u in urls) + '</urlset>\n')
-open(os.path.join(ROOT, 'robots.txt'), 'w').write(f'User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n')
+open(os.path.join(OUT, 'robots.txt'), 'w').write(f'User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n')
+open(os.path.join(OUT, 'CNAME'), 'w').write(SITE_URL.split('//')[1] + '\n')
+open(os.path.join(OUT, '.nojekyll'), 'w').write('')
 
-print(f'Built {len(stories)} stories, {len(urls)} pages.')
+print(f'Built {len(stories)} stories, {len(leagues)} leagues, {len(urls)} pages -> _site/')
