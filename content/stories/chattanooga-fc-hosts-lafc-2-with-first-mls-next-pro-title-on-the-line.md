@@ -20,7 +20,7 @@ Chattanooga faces LAFC 2 at Finley Stadium on Sunday, November 8, at 6 p.m. ET. 
 
 For the home supporters, it will be hard to top the emotions of the Eastern Conference Final. Chattanooga fell behind Columbus Crew 2 by two goals before Alex McGrath scored just before halftime. Damien Barker John tied the match in the 71st minute, giving the hosts time to find a winner.
 
-That moment came deep into stoppage time. Farid Sar-Sar met Tate Robertson’s cross with a header to complete the 3–2 comeback and send Finley Stadium into celebration. (++[fe-en.mnp-prd.deltatre.digital](http://fe-en.mnp-prd.deltatre.digital)++⁠)
+That moment came deep into stoppage time. Farid Sar-Sar met Tate Robertson’s cross with a header to complete the 3–2 comeback and send Finley Stadium into celebration. 
 
 Chattanooga will have the crowd behind it again Sunday, but LAFC 2 has already shown it can handle playing away from home.
 
